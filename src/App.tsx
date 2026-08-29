@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useGoogleAuth } from './useGoogleAuth';
+import { useTheme } from './useTheme';
 import { TEMPLATES } from './templates';
 import { MEALS, type Meal } from './meals';
 import { applyTemplate, clearAllEventsOnDay, clearDay, previewDay } from './calendarApi';
 import { GCAL_COLOR_HEX } from './gcalColors';
 import { CALENDAR_ID, CLIENT_ID, TIMEZONE } from './config';
+
+const THEME_ICON = { system: '🌗', light: '☀️', dark: '🌙' } as const;
 
 type Mode = 'calendar' | 'meals';
 
@@ -37,6 +40,7 @@ function StatusBanner({ status }: { status: Status }) {
 
 export default function App() {
   const { accessToken, ready, error: authError, signIn, signOut } = useGoogleAuth();
+  const { theme, cycle: cycleTheme } = useTheme();
   const [mode, setMode] = useState<Mode>('calendar');
   const [date, setDate] = useState(todayISO());
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
@@ -132,12 +136,17 @@ export default function App() {
           <span className="brand-mark">🗓️</span>
           <span>Day Templates</span>
         </div>
-        <div className="mode-toggle" role="tablist">
-          <button role="tab" aria-selected={mode === 'calendar'} className={mode === 'calendar' ? 'active' : ''} onClick={() => setMode('calendar')}>
-            📅 Calendar
-          </button>
-          <button role="tab" aria-selected={mode === 'meals'} className={mode === 'meals' ? 'active' : ''} onClick={() => setMode('meals')}>
-            🍽️ Meals
+        <div className="topbar-right">
+          <div className="mode-toggle" role="tablist">
+            <button role="tab" aria-selected={mode === 'calendar'} className={mode === 'calendar' ? 'active' : ''} onClick={() => setMode('calendar')}>
+              📅 Calendar
+            </button>
+            <button role="tab" aria-selected={mode === 'meals'} className={mode === 'meals' ? 'active' : ''} onClick={() => setMode('meals')}>
+              🍽️ Meals
+            </button>
+          </div>
+          <button className="theme-toggle" onClick={cycleTheme} title={`Theme: ${theme} (click to change)`} aria-label="Toggle color theme">
+            {THEME_ICON[theme]}
           </button>
         </div>
       </nav>

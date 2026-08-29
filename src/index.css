@@ -27,8 +27,15 @@
   background: var(--bg);
 }
 
+/*
+ * Theme resolution, three ways:
+ * 1. No explicit choice → follow system preference (media query below).
+ * 2. data-theme="light" → force light even if system prefers dark.
+ * 3. data-theme="dark"  → force dark even if system prefers light.
+ * The attribute is set by useTheme.ts and persisted to localStorage.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #121316;
     --bg-elevated: #17191d;
     --surface: #1b1d22;
@@ -48,7 +55,35 @@
     --ok-soft: rgba(111, 209, 155, 0.12);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
   }
+}
+
+:root[data-theme='dark'] {
+  --bg: #121316;
+  --bg-elevated: #17191d;
+  --surface: #1b1d22;
+  --surface-hover: #23262c;
+  --border: #2a2d34;
+  --border-strong: #3a3e47;
+  --text: #f2f1ee;
+  --text-muted: #a3a099;
+  --text-faint: #6f6c66;
+  --accent: #ef8151;
+  --accent-hover: #f5996e;
+  --accent-soft: rgba(239, 129, 81, 0.14);
+  --accent-text: #1a1108;
+  --danger: #e88079;
+  --danger-soft: rgba(232, 128, 121, 0.14);
+  --ok: #6fd19b;
+  --ok-soft: rgba(111, 209, 155, 0.12);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
 }
 
 * {
@@ -97,6 +132,31 @@ body {
 .brand-mark {
   font-size: 22px;
   line-height: 1;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-toggle {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
 }
 
 .mode-toggle {

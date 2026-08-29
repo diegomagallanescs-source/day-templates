@@ -12,6 +12,19 @@
       rel="stylesheet"
     />
     <title>Day Templates</title>
+    <script>
+      // Applied synchronously, before first paint, so a stored light/dark
+      // choice never flashes the system-default theme first. Kept in sync
+      // with the storage key in src/useTheme.ts.
+      (function () {
+        try {
+          var t = localStorage.getItem('day-templates-theme');
+          if (t === 'light' || t === 'dark') {
+            document.documentElement.setAttribute('data-theme', t);
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

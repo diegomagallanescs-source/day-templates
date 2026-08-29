@@ -5,6 +5,8 @@ import { MEALS, type Meal } from './meals';
 import { applyTemplate, clearDay } from './calendarApi';
 import { CALENDAR_ID, CLIENT_ID, TIMEZONE } from './config';
 
+type Mode = 'calendar' | 'meals';
+
 function randomMeal(exclude?: string): Meal {
   const pool = MEALS.length > 1 ? MEALS.filter((m) => m.id !== exclude) : MEALS;
   return pool[Math.floor(Math.random() * pool.length)];
@@ -21,8 +23,20 @@ function todayISO(): string {
 
 type Status = { kind: 'idle' } | { kind: 'busy'; label: string } | { kind: 'ok'; message: string } | { kind: 'error'; message: string };
 
+function StatusBanner({ status }: { status: Status }) {
+  if (status.kind === 'idle') return null;
+  const icon = status.kind === 'ok' ? '✓' : status.kind === 'error' ? '⚠' : '…';
+  return (
+    <div className={`status-banner ${status.kind}`}>
+      <span>{icon}</span>
+      <span>{status.kind === 'busy' ? status.label : status.message}</span>
+    </div>
+  );
+}
+
 export default function App() {
   const { accessToken, ready, error: authError, signIn, signOut } = useGoogleAuth();
+  const [mode, setMode] = useState<Mode>('calendar');
   const [date, setDate] = useState(todayISO());
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [meal, setMeal] = useState<Meal | null>(null);
@@ -69,103 +83,142 @@ export default function App() {
 
   if (missingConfig.length > 0) {
     return (
-      <main className="shell">
-        <h1>Day Templates</h1>
-        <p className="error">
-          Missing config: <code>{missingConfig.join(', ')}</code>. Copy <code>.env.example</code> to <code>.env</code> and fill
-          it in, then restart the dev server.
-        </p>
-      </main>
+      <div className="app">
+        <main className="content">
+          <div className="panel-header">
+            <h1>Day Templates</h1>
+          </div>
+          <p className="error">
+            Missing config: <code>{missingConfig.join(', ')}</code>. Copy <code>.env.example</code> to <code>.env</code> and fill
+            it in, then restart the dev server.
+          </p>
+        </main>
+      </div>
     );
   }
 
   return (
-    <main className="shell">
-      <header>
-        <h1>Day Templates</h1>
-        <p className="subtitle">Stamp a template onto a day, or clear what this app created.</p>
-      </header>
-
-      <section className="meals">
-        <div className="meals-header">
-          <h2>🍽️ What should I cook?</h2>
-          <p className="hint">GERD-friendly ideas you can batch-cook for lunch and dinner.</p>
+    <div className="app">
+      <nav className="topbar">
+        <div className="brand">
+          <span className="brand-mark">🗓️</span>
+          <span>Day Templates</span>
         </div>
-        {meal && (
-          <div className="meal-card">
-            <div className="meal-title">
-              <span className="emoji">{meal.emoji}</span>
-              <h3>{meal.name}</h3>
-            </div>
-            <p>{meal.description}</p>
-          </div>
-        )}
-        <button className="primary" onClick={handleGenerateMeal}>
-          {meal ? 'Generate another' : 'Surprise me'}
-        </button>
-      </section>
-
-      {!accessToken ? (
-        <section className="signin">
-          <button className="primary" disabled={!ready} onClick={() => signIn('')}>
-            {ready ? 'Connect Google Calendar' : 'Loading…'}
+        <div className="mode-toggle" role="tablist">
+          <button role="tab" aria-selected={mode === 'calendar'} className={mode === 'calendar' ? 'active' : ''} onClick={() => setMode('calendar')}>
+            📅 Calendar
           </button>
-          {authError && <p className="error">{authError}</p>}
-        </section>
-      ) : (
-        <>
-          <section className="controls">
-            <label htmlFor="date">Date</label>
-            <input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            <button className="ghost" onClick={signOut}>
-              Disconnect
-            </button>
-          </section>
+          <button role="tab" aria-selected={mode === 'meals'} className={mode === 'meals' ? 'active' : ''} onClick={() => setMode('meals')}>
+            🍽️ Meals
+          </button>
+        </div>
+      </nav>
 
-          <section className="templates">
-            {TEMPLATES.map((t) => (
-              <div className="template-card" key={t.id}>
-                <div className="template-header">
-                  <span className="emoji">{t.emoji}</span>
-                  <h2>{t.name}</h2>
-                </div>
-                <ul className="blocks">
-                  {t.blocks.map((b) => (
-                    <li key={b.title}>
-                      <span className="time">
-                        {b.start}–{b.end}
-                      </span>
-                      <span>{b.title}</span>
-                    </li>
-                  ))}
-                </ul>
-                <button className="primary" onClick={() => handleApply(t.id)} disabled={status.kind === 'busy'}>
-                  Apply to {date}
+      <main className="content">
+        {mode === 'calendar' ? (
+          <>
+            <div className="panel-header">
+              <h1>Calendar</h1>
+              <p>Stamp a template onto a day, or clear what this app created.</p>
+            </div>
+
+            {!accessToken ? (
+              <div className="connect-card">
+                <div className="icon">🔗</div>
+                <h2>Connect your calendar</h2>
+                <p>One-time approval — after that, sign-in is silent.</p>
+                <button className="primary block" disabled={!ready} onClick={() => signIn('')}>
+                  {ready ? 'Connect Google Calendar' : 'Loading…'}
                 </button>
+                {authError && <p className="error connect-error">{authError}</p>}
               </div>
-            ))}
-          </section>
+            ) : (
+              <>
+                <div className="controls">
+                  <label htmlFor="date">Date</label>
+                  <input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                  <button className="ghost spacer" onClick={() => setDate(todayISO())}>
+                    Today
+                  </button>
+                  <button className="ghost" onClick={signOut}>
+                    Disconnect
+                  </button>
+                </div>
 
-          <section className="danger-zone">
-            <button className="danger" onClick={handleClear} disabled={status.kind === 'busy'}>
-              Clear app-created events on {date}
-            </button>
-            <p className="hint">Only deletes events this app tagged when it created them. Everything else on your calendar is untouched.</p>
-          </section>
+                <div className="templates">
+                  {TEMPLATES.map((t) => (
+                    <div className="template-card" key={t.id}>
+                      <div className="template-header">
+                        <span className="emoji">{t.emoji}</span>
+                        <h2>{t.name}</h2>
+                      </div>
+                      <ul className="blocks">
+                        {t.blocks.map((b) => (
+                          <li key={b.title}>
+                            <span className="time">
+                              {b.start}–{b.end}
+                            </span>
+                            <span>{b.title}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <button className="primary block" onClick={() => handleApply(t.id)} disabled={status.kind === 'busy'}>
+                        Apply to {date}
+                      </button>
+                    </div>
+                  ))}
+                </div>
 
-          {status.kind !== 'idle' && (
-            <p className={status.kind === 'error' ? 'error' : status.kind === 'busy' ? 'status busy' : 'status'}>
-              {status.kind === 'busy' ? status.label : status.message}
-            </p>
-          )}
+                <div className="danger-zone">
+                  <button className="danger" onClick={handleClear} disabled={status.kind === 'busy'}>
+                    Clear app-created events on {date}
+                  </button>
+                  <p className="hint">Only deletes events this app tagged when it created them. Everything else on your calendar is untouched.</p>
+                </div>
 
-          <footer>
-            <p className="hint">
-              Calendar: <code>{CALENDAR_ID}</code> · Timezone: <code>{TIMEZONE}</code>
-            </p>
-          </footer>
-        </>
-      )}
-    </main>
+                <StatusBanner status={status} />
+
+                <footer>
+                  <div className="badge-row">
+                    <code>{CALENDAR_ID}</code>
+                    <code>{TIMEZONE}</code>
+                  </div>
+                </footer>
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="panel-header">
+              <h1>What should I cook?</h1>
+              <p>GERD-friendly ideas you can batch-cook for lunch and dinner.</p>
+            </div>
+
+            <div className="meal-generator">
+              {meal && (
+                <div className="meal-card">
+                  <div className="meal-title">
+                    <span className="emoji">{meal.emoji}</span>
+                    <h3>{meal.name}</h3>
+                  </div>
+                  <p>{meal.description}</p>
+                </div>
+              )}
+              <button className="primary" onClick={handleGenerateMeal}>
+                {meal ? '🔁 Generate another' : '🎲 Surprise me'}
+              </button>
+
+              <div className="meal-chips">
+                {MEALS.map((m) => (
+                  <button key={m.id} className={`meal-chip ${meal?.id === m.id ? 'active' : ''}`} onClick={() => setMeal(m)}>
+                    {m.emoji} {m.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </main>
+    </div>
   );
 }

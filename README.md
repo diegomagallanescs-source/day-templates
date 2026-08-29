@@ -11,12 +11,17 @@ day. No backend, no database — templates are baked into the code
   client secret, no refresh token, no server. The consent popup appears once
   ever; after that, tokens renew silently.
 - **Safety:** every event this app creates is tagged with a private extended
-  property (`app=daytemplates`). "Clear day" only ever deletes events
-  carrying that tag — it structurally cannot touch anything else on your
-  calendar.
+  property (`app=daytemplates`). The **"Clear app-created events"** button
+  only ever deletes events carrying that tag — it structurally cannot touch
+  anything else on your calendar. A second, separately-styled
+  **"Delete ALL events"** button also exists for when you want to wipe a day
+  entirely, including events this app had nothing to do with — it previews
+  the count first and requires confirming before deleting anything.
 - **Templates:** plain TypeScript objects in `src/templates.ts`. Add a new
   template = add an entry to the array + redeploy. No UI needed to manage
-  them.
+  them. Each block can optionally set `color` to one of Google Calendar's
+  named event colors (see `src/gcalColors.ts`) — it shows as a small dot in
+  the app and sets the event's actual color on the calendar.
 
 ## Setup
 

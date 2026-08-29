@@ -358,6 +358,14 @@ button.block {
   flex-shrink: 0;
 }
 
+.color-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
 /* ---------- Danger zone ---------- */
 
 .danger-zone {
@@ -366,7 +374,26 @@ button.block {
   border-radius: 16px;
   padding: 22px;
   text-align: center;
+  margin-bottom: 16px;
+}
+
+.danger-zone:last-of-type {
   margin-bottom: 8px;
+}
+
+.danger-zone.extreme {
+  border: 1px solid var(--danger);
+  background: var(--danger-soft);
+}
+
+button.danger-fill {
+  background: var(--danger);
+  color: #fff;
+  border-color: transparent;
+}
+
+button.danger-fill:hover:not(:disabled) {
+  filter: brightness(1.08);
 }
 
 .hint {

@@ -1,4 +1,5 @@
 import { APP_TAG, CALENDAR_ID, TIMEZONE } from './config';
+import { GCAL_COLOR_IDS } from './gcalColors';
 import type { Template } from './templates';
 
 const BASE = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
@@ -51,19 +52,42 @@ function dayBounds(date: string, timeZone: string) {
   };
 }
 
-/** Delete every event on `date` that this app created (tagged with APP_TAG). */
-export async function clearDay(token: string, date: string): Promise<number> {
+/**
+ * List events on `date`. Pass `onlyAppCreated: true` to scope to events this
+ * app tagged when it created them (via APP_TAG); omit it to list everything,
+ * including events this app had nothing to do with.
+ */
+async function listEventsOnDay(token: string, date: string, opts?: { onlyAppCreated?: boolean }): Promise<GCalEvent[]> {
   const { timeMin, timeMax } = dayBounds(date, TIMEZONE);
-  const params = new URLSearchParams({
-    timeMin,
-    timeMax,
-    singleEvents: 'true',
-    privateExtendedProperty: `app=${APP_TAG}`,
-  });
+  const params = new URLSearchParams({ timeMin, timeMax, singleEvents: 'true' });
+  if (opts?.onlyAppCreated) {
+    params.set('privateExtendedProperty', `app=${APP_TAG}`);
+  }
   const list = await request(token, `?${params.toString()}`);
-  const items: GCalEvent[] = list.items ?? [];
-  await Promise.all(items.map((e) => request(token, `/${e.id}`, { method: 'DELETE' })));
-  return items.length;
+  return (list.items ?? []) as GCalEvent[];
+}
+
+async function deleteEvents(token: string, events: GCalEvent[]): Promise<number> {
+  await Promise.all(events.map((e) => request(token, `/${e.id}`, { method: 'DELETE' })));
+  return events.length;
+}
+
+/** Counts for `date`, so callers can show the user what a clear action would affect before doing it. */
+export async function previewDay(token: string, date: string): Promise<{ total: number; appCreated: number }> {
+  const [all, mine] = await Promise.all([listEventsOnDay(token, date), listEventsOnDay(token, date, { onlyAppCreated: true })]);
+  return { total: all.length, appCreated: mine.length };
+}
+
+/** Delete only the events on `date` that this app created (tagged with APP_TAG). Safe — cannot touch anything else. */
+export async function clearDay(token: string, date: string): Promise<number> {
+  const items = await listEventsOnDay(token, date, { onlyAppCreated: true });
+  return deleteEvents(token, items);
+}
+
+/** Delete EVERY event on `date`, regardless of who or what created it. Destructive — callers must confirm first. */
+export async function clearAllEventsOnDay(token: string, date: string): Promise<number> {
+  const items = await listEventsOnDay(token, date);
+  return deleteEvents(token, items);
 }
 
 /** Insert every block of `template` onto `date`. */
@@ -75,6 +99,7 @@ export async function applyTemplate(token: string, date: string, template: Templ
         body: JSON.stringify({
           summary: block.title,
           description: block.description,
+          colorId: block.color ? GCAL_COLOR_IDS[block.color] : undefined,
           start: { dateTime: `${date}T${block.start}:00`, timeZone: TIMEZONE },
           end: { dateTime: `${date}T${block.end}:00`, timeZone: TIMEZONE },
           extendedProperties: {

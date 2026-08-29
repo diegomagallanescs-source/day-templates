@@ -33,8 +33,10 @@ day. No backend, no database — templates are baked into the code
      (the thing that expires in 7 days under Testing status).
 4. **Google Auth Platform → Clients → Create Client**:
    - Application type: **Web application**
-   - Authorized JavaScript origins: `http://localhost`, `http://localhost:5173`,
-     and your deployed URL once you have one
+   - Authorized JavaScript origins: `http://localhost:5180` (this app's dev
+     port — see `vite.config.ts`), plus your deployed URL once you have one.
+     Google matches the origin exactly, including port, so `5180` must be
+     listed verbatim.
    - Authorized redirect URIs: leave empty (popup-based flow, no redirect)
    - Copy the **Client ID** (ends in `.apps.googleusercontent.com`). Ignore
      the client secret — never put it in this app.

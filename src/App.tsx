@@ -1,8 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useGoogleAuth } from './useGoogleAuth';
 import { TEMPLATES } from './templates';
+import { MEALS, type Meal } from './meals';
 import { applyTemplate, clearDay } from './calendarApi';
 import { CALENDAR_ID, CLIENT_ID, TIMEZONE } from './config';
+
+function randomMeal(exclude?: string): Meal {
+  const pool = MEALS.length > 1 ? MEALS.filter((m) => m.id !== exclude) : MEALS;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 function todayISO(): string {
   // Local calendar date as "YYYY-MM-DD", independent of UTC.
@@ -19,6 +25,11 @@ export default function App() {
   const { accessToken, ready, error: authError, signIn, signOut } = useGoogleAuth();
   const [date, setDate] = useState(todayISO());
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
+  const [meal, setMeal] = useState<Meal | null>(null);
+
+  function handleGenerateMeal() {
+    setMeal((current) => randomMeal(current?.id));
+  }
 
   const missingConfig = useMemo(() => {
     const missing: string[] = [];
@@ -74,6 +85,25 @@ export default function App() {
         <h1>Day Templates</h1>
         <p className="subtitle">Stamp a template onto a day, or clear what this app created.</p>
       </header>
+
+      <section className="meals">
+        <div className="meals-header">
+          <h2>🍽️ What should I cook?</h2>
+          <p className="hint">GERD-friendly ideas you can batch-cook for lunch and dinner.</p>
+        </div>
+        {meal && (
+          <div className="meal-card">
+            <div className="meal-title">
+              <span className="emoji">{meal.emoji}</span>
+              <h3>{meal.name}</h3>
+            </div>
+            <p>{meal.description}</p>
+          </div>
+        )}
+        <button className="primary" onClick={handleGenerateMeal}>
+          {meal ? 'Generate another' : 'Surprise me'}
+        </button>
+      </section>
 
       {!accessToken ? (
         <section className="signin">
